@@ -7,10 +7,14 @@
 #define ADCH *((volatile unsigned char*) 0x25)
 #define ADCL *((volatile unsigned char*) 0x24)
 #define DIDR0 *((volatile unsigned char*) 0x34)
+#define TCCR0A *((volatile unsigned char*) 0x4A) //Timer/Counter Control Register A
+#define TCCR0B *((volatile unsigned char*) 0x53) //Timer/Counter Control Register B
+#define OCR0A *((volatile unsigned char*) 0x49) //Output Compare Register A
+#define TIFR *((volatile unsigned char*) 0x58) //Timer/Counter Interrupt Flag Register
 
 #define BLINKS 3
 
-int adc_res = 0b0; //variables for reading the ADC result registers
+/*int adc_res = 0b0; //variables for reading the ADC result registers
 
 void blink(){
     for(unsigned char cycles = 0; cycles < BLINKS; cycles++){
@@ -51,10 +55,10 @@ void brightness(int intensity){
     for(volatile long time = 0; time < intensity; time++){
         PORTB &= (1<<1);
     }
-}
+}*/
 
 int main(){
-    //---Setup---//
+    //---PIN SETTINGS---//
     //Some of the registers are set to 0 as default, thus not mentioned here for saving some space
     DDRB |= (1<<1); //
     //DDRB = 2;
@@ -71,14 +75,30 @@ int main(){
     ADCSRA |= (1<<5);   //ADATE enable -> ADC auto trigger -> probably has to be on, otherwise the ADC doesn't react
     //ADCSRA |= (1<<3);   //Enable ADC interrupt mode
     
+    //-------TIMERS---------
+    //-------TCCR0A setting---------
+    TCCR0A |= (1111<<4);
+    TCCR0A |= (11<<0);  //Set WGM00 & WGM01 for Fast PWM (mode 7; datasheet p.79)
+    //-------TCCR0B setting---------
+    TCCR0B |= (1<<3);  //Set WGM02 for Fast PWM (mode 7; datasheet p.79)
+    TCCR0B |= (001<<0); //Set the prescaler in CS02:00 bits
+    //-------OCR0A setting---------
+    OCR0A = 1;    //Set max counter value to 255
+    //-------TIFR setting---------
+    //Find out
+
     while (1){
-        while(PINB != 8){// || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
+        /*while(PINB != 8){// || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
             adc_res = ADCL;
             adc_res |= ADCH<<8;
             if(adc_res > 0){
                 brightness(adc_res);
             }
         }
-        blink();
+        blink();*/
+        if(TIFR & 1<<4){    //4th bit in TIFR -> OCF0A: Output Compare Flag 0 A -> 1 if Timer/Counter0 value = OCR0A
+           PORTB ^= (1<<1);    //toggle the LED pin
+           TIFR |= (1<<4);  //1 needs to be written to set the flag bit
+        }
     }
 }
