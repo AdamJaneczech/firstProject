@@ -14,9 +14,10 @@
 
 #define BLINKS 3
 
-/*int adc_res = 0b0; //variables for reading the ADC result registers
+int adc_res = 0b0; //variables for reading the ADC result registers
 
 void blink(){
+    TCCR0A = 0; //set the output pin to normal mode
     for(unsigned char cycles = 0; cycles < BLINKS; cycles++){
         PORTB ^= (1<<1);
         for(volatile long time = 0; time < 10000; time++){
@@ -44,26 +45,24 @@ void blink(){
             }
         }
     }
+    TCCR0A = 0b11110011;  //recover the mode for the timer0
 }
 
-void brightness(int intensity){
-    PORTB ^= (1<<1);
-    for(volatile long time = 0; time < 1023-intensity; time++){
-        PORTB &= (1<<1);
+void brightness(unsigned char intensity){
+    if(intensity >= 252){
+        OCR0B = 255;    //turn the LED off
     }
-    PORTB ^= (1<<1);
-    for(volatile long time = 0; time < intensity; time++){
-        PORTB &= (1<<1);
+    else{
+       OCR0B = intensity;  //8-bit values only -> set the PWM duty cycle
     }
-}*/
+}
 
 int main(){
     //---PIN SETTINGS---//
     //Some of the registers are set to 0 as default, thus not mentioned here for saving some space
     DDRB |= (1<<1); //
-    //DDRB = 2;
     //-------ADMUX setting---------
-    //ADMUX |= (1<<5);    //Set ADLAR to 1 -> ADC results left-adjusted (datasheet p. 134)
+    ADMUX |= (1<<5);    //Set ADLAR to 1 -> ADC results left-adjusted (datasheet p. 134)
     ADMUX |= (1<<1); //Set PB4 as the single ended input for the ADC
     //-------DIDR0 setting---------
     DIDR0 = (1<<4); //Disable digital input on ADC2 (PB4)
@@ -77,31 +76,17 @@ int main(){
     
     //-------TIMERS---------
     //-------TCCR0A setting---------
-    TCCR0A |= (1111<<4);
-    TCCR0A |= (11<<0);  //Set WGM00 & WGM01 for Fast PWM (mode 7; datasheet p.79)
+    TCCR0A = 0b11110011;    //first 2 digits -> fast PWM mode; last 4 ones -> PWM inverting mode set (with 1010 is PWM not inverted)
     //-------TCCR0B setting---------
-    TCCR0B |= (1<<3);  //Set WGM02 for Fast PWM (mode 7; datasheet p.79)
-    TCCR0B |= (101<<0); //Set the prescaler in CS02:00 bits
-    //-------OCR0B setting---------
-    OCR0B = 127;    //Set max counter value to 255
-    //-------TIFR setting---------
-    //Find out
+    TCCR0B = (1<<0);    //no prescaling set (PWM runs on system clock)
 
     while (1){
-        /*while(PINB != 8){// || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
-            adc_res = ADCL;
-            adc_res |= ADCH<<8;
-            if(adc_res > 0){
-                brightness(adc_res);
-            }
+        while(PINB != 8){// || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
+            adc_res = ADCH; //read just ADCH with ADLAR in ADMUX set to 1 -> an 8-bit result
+            //adc_res = ADCL;
+            //adc_res |= ADCH<<8; -> for 10-bit results
+            brightness(adc_res);
         }
-        blink();*/
-        for(unsigned char cycle = 0; cycle < 30; cycle++){
-            if(TIFR & 1<<3){    //3rd bit in TIFR -> OCF0B: Output Compare Flag 0 B -> 1 if Timer/Counter0 value = OCR0B
-                TIFR |= (1<<3);  //1 needs to be written to set the flag bit
-            }
-        }
-        PORTB ^= (1<<1);    //toggle the LED pin
-
+        blink();
     }
 }
