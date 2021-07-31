@@ -9,7 +9,7 @@
 #define DIDR0 *((volatile unsigned char*) 0x34)
 #define TCCR0A *((volatile unsigned char*) 0x4A) //Timer/Counter Control Register A
 #define TCCR0B *((volatile unsigned char*) 0x53) //Timer/Counter Control Register B
-#define OCR0A *((volatile unsigned char*) 0x49) //Output Compare Register A
+#define OCR0B *((volatile unsigned char*) 0x48) //Output Compare Register B -> LED connected on OC0B pin
 #define TIFR *((volatile unsigned char*) 0x58) //Timer/Counter Interrupt Flag Register
 
 #define BLINKS 3
@@ -81,9 +81,9 @@ int main(){
     TCCR0A |= (11<<0);  //Set WGM00 & WGM01 for Fast PWM (mode 7; datasheet p.79)
     //-------TCCR0B setting---------
     TCCR0B |= (1<<3);  //Set WGM02 for Fast PWM (mode 7; datasheet p.79)
-    TCCR0B |= (001<<0); //Set the prescaler in CS02:00 bits
-    //-------OCR0A setting---------
-    OCR0A = 1;    //Set max counter value to 255
+    TCCR0B |= (101<<0); //Set the prescaler in CS02:00 bits
+    //-------OCR0B setting---------
+    OCR0B = 127;    //Set max counter value to 255
     //-------TIFR setting---------
     //Find out
 
@@ -96,9 +96,12 @@ int main(){
             }
         }
         blink();*/
-        if(TIFR & 1<<4){    //4th bit in TIFR -> OCF0A: Output Compare Flag 0 A -> 1 if Timer/Counter0 value = OCR0A
-           PORTB ^= (1<<1);    //toggle the LED pin
-           TIFR |= (1<<4);  //1 needs to be written to set the flag bit
+        for(unsigned char cycle = 0; cycle < 30; cycle++){
+            if(TIFR & 1<<3){    //3rd bit in TIFR -> OCF0B: Output Compare Flag 0 B -> 1 if Timer/Counter0 value = OCR0B
+                TIFR |= (1<<3);  //1 needs to be written to set the flag bit
+            }
         }
+        PORTB ^= (1<<1);    //toggle the LED pin
+
     }
 }
