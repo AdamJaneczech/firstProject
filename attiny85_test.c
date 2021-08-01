@@ -1,23 +1,34 @@
+//Pin settings
 #define PORTB *((volatile unsigned char*) 0x38)
 #define DDRB *((volatile unsigned char*) 0x37)
 #define PINB *((volatile unsigned char*) 0x36)
+//ADC registers
 #define ADMUX *((volatile unsigned char*) 0x27)
 #define ADCSRA *((volatile unsigned char*) 0x26)
 #define ADCSRB *((volatile unsigned char*) 0x23)
 #define ADCH *((volatile unsigned char*) 0x25)
 #define ADCL *((volatile unsigned char*) 0x24)
 #define DIDR0 *((volatile unsigned char*) 0x34)
+//Timers
+#define TIFR *((volatile unsigned char*) 0x58) //Timer/Counter Interrupt Flag Register
+#define TIMSK *((volatile unsigned char*) 0x59) //Timer/Counter Interrupt Mask Register
+//Timer/Counter0
 #define TCCR0A *((volatile unsigned char*) 0x4A) //Timer/Counter Control Register A
 #define TCCR0B *((volatile unsigned char*) 0x53) //Timer/Counter Control Register B
 #define OCR0B *((volatile unsigned char*) 0x48) //Output Compare Register B -> LED connected on OC0B pin
-#define TIFR *((volatile unsigned char*) 0x58) //Timer/Counter Interrupt Flag Register
+//Timer/Counter1
+#define TCCR1 *((volatile unsigned char*) 0x50) //Timer/Counter1 Control Register
+#define TCNT1 *((volatile unsigned char*) 0x4F) //Timer/Counter1
+#define OCR1A *((volatile unsigned char*) 0x4E) //Timer/Counter1 Compare Register A
+#define OCR1C *((volatile unsigned char*) 0x4D) //Timer/Counter1 Compare Register A
+
 
 #define BLINKS 3
 
 int adc_res = 0b0; //variables for reading the ADC result registers
 
 void blink(){
-    TCCR0A = 0; //set the output pin to normal mode
+    //TCCR0A = 0; //set the output pin to normal mode
     for(unsigned char cycles = 0; cycles < BLINKS; cycles++){
         PORTB ^= (1<<1);
         for(volatile long time = 0; time < 10000; time++){
@@ -45,17 +56,17 @@ void blink(){
             }
         }
     }
-    TCCR0A = 0b11110011;  //recover the mode for the timer0
+    //TCCR0A = 0b11110011;  //recover the mode for the timer0
 }
 
-void brightness(unsigned char intensity){
+/*void brightness(unsigned char intensity){
     if(intensity >= 252){
         OCR0B = 255;    //turn the LED off
     }
     else{
        OCR0B = intensity;  //8-bit values only -> set the PWM duty cycle
     }
-}
+}*/
 
 int main(){
     //---PIN SETTINGS---//
@@ -76,16 +87,22 @@ int main(){
     
     //-------TIMERS---------
     //-------TCCR0A setting---------
-    TCCR0A = 0b11110011;    //first 2 digits -> fast PWM mode; last 4 ones -> PWM inverting mode set (with 1010 is PWM not inverted)
+    //TCCR0A = 0b11110011;    //first 2 digits -> fast PWM mode; last 4 ones -> PWM inverting mode set (with 1010 is PWM not inverted)
     //-------TCCR0B setting---------
-    TCCR0B = (1<<0);    //no prescaling set (PWM runs on system clock)
-
+    TCCR0B |= (1<<0);    //no prescaling set (PWM runs on system clock)
+    //-------TCCR1 setting---------
+    OCR1C = 244;    //count to 244 to get LED pin toggle every ~ 0.5 s with system clock 8 MHz & prescaler set to 16384 
+    TCCR1 = 0b10001111; //set the Timer/Counter1 prescaler value to 16384 (currently synced mode selected)
     while (1){
         while(PINB != 8){// || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
-            adc_res = ADCH; //read just ADCH with ADLAR in ADMUX set to 1 -> an 8-bit result
+            //adc_res = ADCH; //read just ADCH with ADLAR in ADMUX set to 1 -> an 8-bit result
             //adc_res = ADCL;
             //adc_res |= ADCH<<8; -> for 10-bit results
-            brightness(adc_res);
+            //brightness(adc_res);
+            if(TCNT1 == OCR1C){
+                PORTB ^= 1<<1;
+                //TIFR |= 1<<6;
+            }
         }
         blink();
     }
