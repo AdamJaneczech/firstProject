@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "io.h": "c",
+        "iom3250p.h": "c",
+        "iotn85.h": "c",
+        "iotnx5.h": "c",
+        "sfr_defs.h": "c",
+        "interrupt.h": "c"
+    }
+}

@@ -1,30 +1,5 @@
-#define SREG *((volatile unsigned char*) 0x5F)
-//Pin settings
-#define PORTB *((volatile unsigned char*) 0x38)
-#define DDRB *((volatile unsigned char*) 0x37)
-#define PINB *((volatile unsigned char*) 0x36)
-//ADC registers
-#define ADMUX *((volatile unsigned char*) 0x27)
-#define ADCSRA *((volatile unsigned char*) 0x26)
-#define ADCSRB *((volatile unsigned char*) 0x23)
-#define ADCH *((volatile unsigned char*) 0x25)
-#define ADCL *((volatile unsigned char*) 0x24)
-#define DIDR0 *((volatile unsigned char*) 0x34)
-//Timers
-#define TIFR *((volatile unsigned char*) 0x58) //Timer/Counter Interrupt Flag Register
-#define TIMSK *((volatile unsigned char*) 0x59) //Timer/Counter Interrupt Mask Register
-//Timer/Counter0
-#define TCCR0A *((volatile unsigned char*) 0x4A) //Timer/Counter Control Register A
-#define TCCR0B *((volatile unsigned char*) 0x53) //Timer/Counter Control Register B
-#define OCR0B *((volatile unsigned char*) 0x48) //Output Compare Register B -> LED connected on OC0B pin
-//Timer/Counter1
-#define TCCR1 *((volatile unsigned char*) 0x50) //Timer/Counter1 Control Register
-#define TCNT1 *((volatile unsigned char*) 0x4F) //Timer/Counter1
-#define OCR1A *((volatile unsigned char*) 0x4E) //Timer/Counter1 Compare Register A
-#define OCR1C *((volatile unsigned char*) 0x4D) //Timer/Counter1 Compare Register A
-//Interrupt registers
-#define GIMSK *((volatile unsigned char*) 0x5B) //General Interrupt Mask Register
-#define PCMSK *((volatile unsigned char*) 0x35) //Pin Change Mask Register
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
 #define BLINKS 3
 
