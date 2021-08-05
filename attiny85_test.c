@@ -1,3 +1,4 @@
+#define SREG *((volatile unsigned char*) 0x5F)
 //Pin settings
 #define PORTB *((volatile unsigned char*) 0x38)
 #define DDRB *((volatile unsigned char*) 0x37)
@@ -21,7 +22,9 @@
 #define TCNT1 *((volatile unsigned char*) 0x4F) //Timer/Counter1
 #define OCR1A *((volatile unsigned char*) 0x4E) //Timer/Counter1 Compare Register A
 #define OCR1C *((volatile unsigned char*) 0x4D) //Timer/Counter1 Compare Register A
-
+//Interrupt registers
+#define GIMSK *((volatile unsigned char*) 0x5B) //General Interrupt Mask Register
+#define PCMSK *((volatile unsigned char*) 0x35) //Pin Change Mask Register
 
 #define BLINKS 3
 
@@ -69,6 +72,8 @@ void blink(){
 }*/
 
 int main(){
+    //-------SREG settings---------
+    SREG |= 1<<7;   //enable global interrupts using the I-bit (needs to be updated after an interrupt occurs)
     //---PIN SETTINGS---//
     //Some of the registers are set to 0 as default, thus not mentioned here for saving some space
     DDRB |= (1<<1); //
@@ -85,7 +90,7 @@ int main(){
     ADCSRA |= (1<<5);   //ADATE enable -> ADC auto trigger -> probably has to be on, otherwise the ADC doesn't react
     //ADCSRA |= (1<<3);   //Enable ADC interrupt mode
     
-    //-------TIMERS---------
+    //---TIMER SETTINGS---
     //-------TCCR0A setting---------
     //TCCR0A = 0b11110011;    //first 2 digits -> fast PWM mode; last 4 ones -> PWM inverting mode set (with 1010 is PWM not inverted)
     //-------TCCR0B setting---------
