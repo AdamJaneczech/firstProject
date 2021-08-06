@@ -3,23 +3,13 @@
 
 #define BLINKS 3
 
-unsigned char adc_res = 0b0; //variables for reading the ADC result registers
-unsigned char status = 0b0; //1st bit -> 0 = ADC conversion, 1 = 1 blink / 1 sec
+unsigned char adc_res = 0; //variables for reading the ADC result registers
+unsigned char status = 0; //1st bit -> 0 = ADC conversion, 1 = 1 blink / 1 sec
 
 void blink(){
-    TCCR0A = 0; //set the output pin to normal mode
+    //cli();
     PORTB ^= 1<<1;
-    for(unsigned char cycles = 0; cycles < BLINKS; cycles++){
-        PORTB ^= (1<<1);
-        for(volatile long time = 0; time < 10000; time++){
-            PORTB &= (1<<1);
-        }
-        PORTB ^= (1<<1);
-        for(volatile long time = 0; time < 10000; time++){
-            PORTB &= (1<<1);
-        }
-    }
-    TCCR0A = 0b11110011;  //recover the mode for the timer0
+    //sei();
 }
 
 void brightness(unsigned char intensity){
@@ -34,15 +24,19 @@ void brightness(unsigned char intensity){
 ISR(INT0_vect){
     cli();
     status ^= 1<<0;
+    if(status == 1){
+        TCCR0A = 0; //set the output pin to normal mode
+    }
+    else if(status == 0){
+        TCCR0A = 0b11110011;    //first 2 digits -> fast PWM mode; last 4 ones -> PWM inverting mode set (with 1010 is PWM not inverted)
+    }
     sei();
 }
 
 ISR(TIMER1_COMPA_vect){
-    cli();
     if(status == 1){
         blink();
     }
-    sei();
 }
 
 int main(){
@@ -84,14 +78,14 @@ int main(){
 
     sei();
     while (1){
-        if(status == 0b0){
+        if(status == 0){
             // || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
             adc_res = ADCH; //read just ADCH with ADLAR in ADMUX set to 1 -> an 8-bit result
             //adc_res = ADCL;
             //adc_res |= ADCH<<8; -> for 10-bit results
             brightness(adc_res);
         }
-        else if(status == 0b1){
+        else if(status == 1){
             
         }
         else{
