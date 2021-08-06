@@ -1,8 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#define BLINKS 3
-
 unsigned char adc_res = 0; //variables for reading the ADC result registers
 unsigned char status = 0; //1st bit -> 0 = ADC conversion, 1 = 1 blink / 1 sec
 
@@ -41,7 +39,7 @@ ISR(TIMER1_COMPA_vect){
 
 int main(){
     //-------SREG settings---------
-    SREG |= 1<<7;   //enable global interrupts using the I-bit (needs to be updated after an interrupt occurs)
+    //SREG |= 1<<7;   //enable global interrupts using the I-bit (needs to be updated after an interrupt occurs); sei() could be probably used
 
     //---PIN SETTINGS---//
     //Some of the registers are set to 0 as default, thus not mentioned here for saving some space
@@ -76,7 +74,7 @@ int main(){
     MCUCR |= 1<<1;
     MCUCR |= 1<<0;  //Detect interrupts on rising edge 
 
-    sei();
+    sei();  //Enable interrupts
     while (1){
         if(status == 0){
             // || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
@@ -87,9 +85,6 @@ int main(){
         }
         else if(status == 1){
             
-        }
-        else{
-            ;  
         }
     }
 }
