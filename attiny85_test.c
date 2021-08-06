@@ -3,18 +3,18 @@
 
 #define BLINKS 3
 
-int adc_res = 0b0; //variables for reading the ADC result registers
+unsigned char adc_res = 0b0; //variables for reading the ADC result registers
+unsigned char status = 0b0; //1st bit -> 0 = ADC conversion, 1 = 1 blink / 1 sec
 
 void blink(){
-    cli();
-    //TCCR0A = 0; //set the output pin to normal mode
+    TCCR0A = 0; //set the output pin to normal mode
     for(unsigned char cycles = 0; cycles < BLINKS; cycles++){
         PORTB ^= (1<<1);
-        for(volatile long time = 0; time < 10000; time++){
+        for(volatile long time = 0; time < 30000; time++){
             PORTB &= (1<<1);
         }
         PORTB ^= (1<<1);
-        for(volatile long time = 0; time < 10000; time++){
+        for(volatile long time = 0; time < 30000; time++){
             PORTB &= (1<<1);
         }
     }
@@ -35,8 +35,7 @@ void blink(){
             }
         }
     }
-    //TCCR0A = 0b11110011;  //recover the mode for the timer0
-    sei();
+    TCCR0A = 0b11110011;  //recover the mode for the timer0
 }
 
 void brightness(unsigned char intensity){
@@ -76,7 +75,7 @@ int main(){
     
     //---TIMER SETTINGS---
     //-------TCCR0A setting---------
-    //TCCR0A = 0b11110011;    //first 2 digits -> fast PWM mode; last 4 ones -> PWM inverting mode set (with 1010 is PWM not inverted)
+    TCCR0A = 0b11110011;    //first 2 digits -> fast PWM mode; last 4 ones -> PWM inverting mode set (with 1010 is PWM not inverted)
     //-------TCCR0B setting---------
     TCCR0B |= (1<<0);    //no prescaling set (PWM runs on system clock)
     //-------TCCR1 setting---------
