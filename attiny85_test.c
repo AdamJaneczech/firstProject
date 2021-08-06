@@ -8,31 +8,15 @@ unsigned char status = 0b0; //1st bit -> 0 = ADC conversion, 1 = 1 blink / 1 sec
 
 void blink(){
     TCCR0A = 0; //set the output pin to normal mode
+    PORTB ^= 1<<1;
     for(unsigned char cycles = 0; cycles < BLINKS; cycles++){
         PORTB ^= (1<<1);
-        for(volatile long time = 0; time < 30000; time++){
+        for(volatile long time = 0; time < 10000; time++){
             PORTB &= (1<<1);
         }
         PORTB ^= (1<<1);
-        for(volatile long time = 0; time < 30000; time++){
+        for(volatile long time = 0; time < 10000; time++){
             PORTB &= (1<<1);
-        }
-    }
-
-    if(ADCSRA & 1<<6){  //test if the ADC is running
-        for(volatile long time = 0; time < 100000; time++){
-            PORTB &= (1<<1);
-        }   //some delay
-        
-        for(unsigned char cycles = 0; cycles < BLINKS*2; cycles++){
-            PORTB ^= (1<<1);
-            for(volatile long time = 0; time < 10000; time++){
-                PORTB &= (1<<1);
-            }
-            PORTB ^= (1<<1);
-            for(volatile long time = 0; time < 10000; time++){
-                PORTB &= (1<<1);
-            }
         }
     }
     TCCR0A = 0b11110011;  //recover the mode for the timer0
@@ -47,9 +31,17 @@ void brightness(unsigned char intensity){
     }
 }
 
-ISR(PCINT0_vect){
+ISR(INT0_vect){
     cli();
-    blink();
+    status ^= 1<<0;
+    sei();
+}
+
+ISR(TIMER1_COMPA_vect){
+    cli();
+    if(status == 1){
+        blink();
+    }
     sei();
 }
 
@@ -79,25 +71,31 @@ int main(){
     //-------TCCR0B setting---------
     TCCR0B |= (1<<0);    //no prescaling set (PWM runs on system clock)
     //-------TCCR1 setting---------
-    OCR1C = 244;    //count to 244 to get LED pin toggle every ~ 0.5 s with system clock 8 MHz & prescaler set to 16384 
+    OCR1A = 244;    //count to 244 to get LED pin toggle every ~ 0.5 s with system clock 8 MHz & prescaler set to 16384 
     TCCR1 = 0b10001111; //set the Timer/Counter1 prescaler value to 16384 (currently synced mode selected)
-
+    
+    TIMSK |= 1<<6;
     //---INTERRUPT SETTINGS---
-    GIMSK |= 1<<5;  //Enable PCINT
-    PCMSK |= 1<<3;  //Enable PCINT for PB3
+    GIMSK |= 1<<6;  //Enable INT0
+    //GIMSK |= 1<<5;  //Enable PCINT
+    //PCMSK |= 1<<3;  //Enable PCINT for PB3
     MCUCR |= 1<<1;
     MCUCR |= 1<<0;  //Detect interrupts on rising edge 
 
     sei();
     while (1){
-        // || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
-        adc_res = ADCH; //read just ADCH with ADLAR in ADMUX set to 1 -> an 8-bit result
-        //adc_res = ADCL;
-        //adc_res |= ADCH<<8; -> for 10-bit results
-        brightness(adc_res);
-        /*if(TCNT1 == OCR1C){
-            PORTB ^= 1<<1;
-            //TIFR |= 1<<6;
-        }*/
+        if(status == 0b0){
+            // || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
+            adc_res = ADCH; //read just ADCH with ADLAR in ADMUX set to 1 -> an 8-bit result
+            //adc_res = ADCL;
+            //adc_res |= ADCH<<8; -> for 10-bit results
+            brightness(adc_res);
+        }
+        else if(status == 0b1){
+            
+        }
+        else{
+            ;  
+        }
     }
 }
