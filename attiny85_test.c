@@ -6,6 +6,7 @@
 int adc_res = 0b0; //variables for reading the ADC result registers
 
 void blink(){
+    cli();
     //TCCR0A = 0; //set the output pin to normal mode
     for(unsigned char cycles = 0; cycles < BLINKS; cycles++){
         PORTB ^= (1<<1);
@@ -23,7 +24,7 @@ void blink(){
             PORTB &= (1<<1);
         }   //some delay
         
-        for(unsigned char cycles = 0; cycles < BLINKS; cycles++){
+        for(unsigned char cycles = 0; cycles < BLINKS*2; cycles++){
             PORTB ^= (1<<1);
             for(volatile long time = 0; time < 10000; time++){
                 PORTB &= (1<<1);
@@ -35,20 +36,28 @@ void blink(){
         }
     }
     //TCCR0A = 0b11110011;  //recover the mode for the timer0
+    sei();
 }
 
-/*void brightness(unsigned char intensity){
+void brightness(unsigned char intensity){
     if(intensity >= 252){
         OCR0B = 255;    //turn the LED off
     }
     else{
-       OCR0B = intensity;  //8-bit values only -> set the PWM duty cycle
+        OCR0B = intensity;  //8-bit values only -> set the PWM duty cycle
     }
-}*/
+}
+
+ISR(PCINT0_vect){
+    cli();
+    blink();
+    sei();
+}
 
 int main(){
     //-------SREG settings---------
     SREG |= 1<<7;   //enable global interrupts using the I-bit (needs to be updated after an interrupt occurs)
+
     //---PIN SETTINGS---//
     //Some of the registers are set to 0 as default, thus not mentioned here for saving some space
     DDRB |= (1<<1); //
@@ -73,17 +82,23 @@ int main(){
     //-------TCCR1 setting---------
     OCR1C = 244;    //count to 244 to get LED pin toggle every ~ 0.5 s with system clock 8 MHz & prescaler set to 16384 
     TCCR1 = 0b10001111; //set the Timer/Counter1 prescaler value to 16384 (currently synced mode selected)
+
+    //---INTERRUPT SETTINGS---
+    GIMSK |= 1<<5;  //Enable PCINT
+    PCMSK |= 1<<3;  //Enable PCINT for PB3
+    MCUCR |= 1<<1;
+    MCUCR |= 1<<0;  //Detect interrupts on rising edge 
+
+    sei();
     while (1){
-        while(PINB != 8){// || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
-            //adc_res = ADCH; //read just ADCH with ADLAR in ADMUX set to 1 -> an 8-bit result
-            //adc_res = ADCL;
-            //adc_res |= ADCH<<8; -> for 10-bit results
-            //brightness(adc_res);
-            if(TCNT1 == OCR1C){
-                PORTB ^= 1<<1;
-                //TIFR |= 1<<6;
-            }
-        }
-        blink();
+        // || adc_res <= 0b1111101000){ //0b1111101000 == 1000 in DEC; need to shift ADCL 2 bits to the left because of the 10-bit value
+        adc_res = ADCH; //read just ADCH with ADLAR in ADMUX set to 1 -> an 8-bit result
+        //adc_res = ADCL;
+        //adc_res |= ADCH<<8; -> for 10-bit results
+        brightness(adc_res);
+        /*if(TCNT1 == OCR1C){
+            PORTB ^= 1<<1;
+            //TIFR |= 1<<6;
+        }*/
     }
 }

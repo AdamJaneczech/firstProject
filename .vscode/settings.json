@@ -6,5 +6,19 @@
         "iotnx5.h": "c",
         "sfr_defs.h": "c",
         "interrupt.h": "c"
+    },
+    "actionButtons": {
+        "defaultColor": "#ff0034", // Can also use string color names.
+        "loadNpmCommands":false, // Disables automatic generation of actions for npm commands.
+        "reloadButton":"♻️", // Custom reload button text or icon (default ↻). null value enables automatic reload on configuration change
+        "commands": [
+            {
+                "cwd": "${workspaceFolder}", 	// Terminal initial folder ${workspaceFolder} and os user home as defaults
+                "name": "Compile & flash",
+                "color": "white",
+                "singleInstance": true,
+                "command": "./comp_flash.sh", // This is executed in the terminal.
+            }
+        ]
     }
 }
