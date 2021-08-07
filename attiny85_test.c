@@ -6,20 +6,20 @@ unsigned char status = 0; //1st bit -> 0 = ADC conversion, 1 = 1 blink / 1 sec
 
 void blink(){
     //cli();
-    PORTB ^= 1<<1;
+    PORTB ^= 1<<0;
     //sei();
 }
 
 void brightness(unsigned char intensity){
     if(intensity >= 252){
-        OCR0B = 255;    //turn the LED off
+        OCR0A = 255;    //turn the LED off
     }
     else{
-        OCR0B = intensity;  //8-bit values only -> set the PWM duty cycle
+        OCR0A = intensity;  //8-bit values only -> set the PWM duty cycle
     }
 }
 
-ISR(INT0_vect){
+ISR(PCINT0_vect){
     cli();
     status ^= 1<<0;
     if(status == 1){
@@ -43,19 +43,18 @@ int main(){
 
     //---PIN SETTINGS---//
     //Some of the registers are set to 0 as default, thus not mentioned here for saving some space
-    DDRB |= (1<<1); //
+    DDRB |= (1<<0); //LED pin -> OUTPUT
     //-------ADMUX setting---------
     ADMUX |= (1<<5);    //Set ADLAR to 1 -> ADC results left-adjusted (datasheet p. 134)
-    ADMUX |= (1<<1); //Set PB4 as the single ended input for the ADC
+    ADMUX |= 1<<0;  //Set PB2 as the ADC input
     //-------DIDR0 setting---------
-    DIDR0 = (1<<4); //Disable digital input on ADC2 (PB4)
+    DIDR0 = (1<<1); //Disable digital input on ADC1 (PB2)
     //-------ADCSRB setting---------
     ADCSRB = 0; //free running mode, default value is 0 - the register probably doesn't have to be configured
     //-------ADCSRA setting---------
     ADCSRA |= (1<<7);   //Enable the ADC using ADEN bit
     ADCSRA |= (1<<6);   //Start the conversion (First 3 bits of ADCSRB are 0 -> free running mode -> ADC samples data all the time (datasheet p. 137))
     ADCSRA |= (1<<5);   //ADATE enable -> ADC auto trigger -> probably has to be on, otherwise the ADC doesn't react
-    //ADCSRA |= (1<<3);   //Enable ADC interrupt mode
     
     //---TIMER SETTINGS---
     //-------TCCR0A setting---------
@@ -68,11 +67,11 @@ int main(){
     
     TIMSK |= 1<<6;
     //---INTERRUPT SETTINGS---
-    GIMSK |= 1<<6;  //Enable INT0
-    //GIMSK |= 1<<5;  //Enable PCINT
-    //PCMSK |= 1<<3;  //Enable PCINT for PB3
-    MCUCR |= 1<<1;
-    MCUCR |= 1<<0;  //Detect interrupts on rising edge 
+    //GIMSK |= 1<<6;  //Enable INT0
+    GIMSK |= 1<<5;  //Enable PCINT
+    PCMSK |= 1<<1;  //Enable PCINT1 for PB1
+    //MCUCR |= 1<<1;
+    //MCUCR |= 1<<0;  //Detect interrupts on rising edge (2 bits)
 
     sei();  //Enable interrupts
     while (1){
